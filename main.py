@@ -17,6 +17,19 @@ def process_excel():
     # Load the Excel file
     df = pd.read_excel(file_path)
     
+    # Sorting Feature
+    sort_choice = input("Do you want to sort the data? (yes/no): ").strip().lower()
+    if sort_choice == "yes":
+        sort_columns = input("Enter the column numbers to sort by (comma-separated): ").strip().split(',')
+        sort_orders = input("Enter sorting order for each column (asc/desc, comma-separated): ").strip().split(',')
+        
+        try:
+            sort_columns = [df.columns[int(i) - 1] for i in sort_columns]
+            ascending = [True if order.strip().lower() == "asc" else False for order in sort_orders]
+            df = df.sort_values(by=sort_columns, ascending=ascending)
+        except (IndexError, ValueError):
+            print("Invalid column selection for sorting. Skipping sorting.")
+    
     # Display column names for selection
     print("\nAvailable columns:")
     for idx, col in enumerate(df.columns, start=1):
@@ -47,33 +60,21 @@ def process_excel():
             duplicated_rows = pd.concat([duplicated_rows, dupes]).drop_duplicates()
 
     unique_rows = df.drop(duplicated_rows.index)
-
-    # Sorting Feature
-    sort_choice = input("Do you want to sort the data? (yes/no): ").strip().lower()
-    if sort_choice == "yes":
-        sort_column_index = input("Enter the column number to sort by: ").strip()
-        sort_order = input("Enter sorting order (asc/desc): ").strip().lower()
-        
-        try:
-            sort_column = df.columns[int(sort_column_index) - 1]
-            ascending = True if sort_order == "asc" else False
-            duplicated_rows = duplicated_rows.sort_values(by=sort_column, ascending=ascending)
-            unique_rows = unique_rows.sort_values(by=sort_column, ascending=ascending)
-        except (IndexError, ValueError):
-            print("Invalid column selection for sorting. Skipping sorting.")
-
+    
     # Create output directories
     output_dir = os.path.join(current_dir, "output")
     os.makedirs(output_dir, exist_ok=True)
     
-    # Save outputs to new Excel files in output directory
-    duplicated_file = os.path.join(output_dir, "duplicated_rows.xlsx")
-    unique_file = os.path.join(output_dir, "unique_rows.xlsx")
-    duplicated_rows.to_excel(duplicated_file, index=False)
-    unique_rows.to_excel(unique_file, index=False)
+    # Optional duplicate rows saving
+    save_duplicates = input("Do you want to save duplicated rows in a separate file? (yes/no): ").strip().lower()
+    if save_duplicates == "yes":
+        duplicated_file = os.path.join(output_dir, "duplicated_rows.xlsx")
+        duplicated_rows.to_excel(duplicated_file, index=False)
+        print(f"Duplicated rows saved to: {duplicated_file}")
     
-    print(f"\nProcessed successfully!")
-    print(f"Duplicated rows saved to: {duplicated_file}")
+    # Save unique rows
+    unique_file = os.path.join(output_dir, "unique_rows.xlsx")
+    unique_rows.to_excel(unique_file, index=False)
     print(f"Unique rows saved to: {unique_file}")
 
     # Splitting Feature
