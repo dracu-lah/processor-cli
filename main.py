@@ -1,21 +1,29 @@
 import pandas as pd
 import os
+import time
 
 def process_excel():
+    print("Loading... Please wait.")
+    time.sleep(1)  # Simulating loading time
+
     # Get the current directory
     current_dir = os.getcwd()
 
     # Find the first Excel file in the directory
     excel_files = [f for f in os.listdir(current_dir) if f.endswith('.xlsx') or f.endswith('.xls')]
     if not excel_files:
-        print("No Excel files found in the current directory.")
+        print("Error: No Excel files found in the current directory.")
         return
 
     file_path = os.path.join(current_dir, excel_files[0])
     print(f"Processing file: {file_path}")
 
-    # Load the Excel file
-    df = pd.read_excel(file_path)
+    try:
+        # Load the Excel file
+        df = pd.read_excel(file_path)
+    except Exception as e:
+        print(f"Error: Unable to read the Excel file. {e}")
+        return
 
     # Sorting Feature
     sort_choice = input("Do you want to sort the data? (yes/no): ").strip().lower()
@@ -23,17 +31,21 @@ def process_excel():
         print("\nAvailable columns for sorting:")
         for idx, col in enumerate(df.columns, start=1):
             print(f"{idx}. {col}")
-
+        
         selected_indices = input("Enter column numbers to sort by (comma-separated): ").strip()
-        selected_columns = [df.columns[int(i) - 1] for i in selected_indices.split(',') if i.isdigit()]
+        try:
+            selected_columns = [df.columns[int(i) - 1] for i in selected_indices.split(',') if i.isdigit()]
+        except (IndexError, ValueError):
+            print("Error: Invalid column selection.")
+            return
         
         sort_orders = []
         for col in selected_columns:
             order = input(f"Enter sorting order for '{col}' (asc/desc): ").strip().lower()
             sort_orders.append(True if order == "asc" else False)
-
+        
         df = df.sort_values(by=selected_columns, ascending=sort_orders)
-
+    
     # User input for unique column selection
     use_whole_row = input("\nDo you want to check uniqueness based on the whole row? (yes/no): ").strip().lower()
 
@@ -45,7 +57,11 @@ def process_excel():
             print(f"{idx}. {col}")
 
         selected_indices = input("Enter column numbers to check for uniqueness (comma-separated): ")
-        selected_columns = [df.columns[int(i) - 1] for i in selected_indices.split(',') if i.isdigit()]
+        try:
+            selected_columns = [df.columns[int(i) - 1] for i in selected_indices.split(',') if i.isdigit()]
+        except (IndexError, ValueError):
+            print("Error: Invalid column selection.")
+            return
 
     # Ask user whether to use "AND" or "OR" for multiple columns
     if len(selected_columns) > 1:
@@ -72,6 +88,13 @@ def process_excel():
     unique_file = os.path.join(output_dir, "unique_rows.xlsx")
     unique_rows.to_excel(unique_file, index=False)
     print(f"\nUnique rows saved to: {unique_file}")
+
+    # Calculate and display percentages
+    total_rows = len(df)
+    unique_percentage = (len(unique_rows) / total_rows) * 100 if total_rows > 0 else 0
+    duplicate_percentage = (len(duplicated_rows) / total_rows) * 100 if total_rows > 0 else 0
+    print(f"\nUnique Rows: {len(unique_rows)} ({unique_percentage:.2f}%)")
+    print(f"Duplicate Rows: {len(duplicated_rows)} ({duplicate_percentage:.2f}%)")
 
     # Optional duplicate row extraction
     extract_duplicates = input("Do you want to save duplicate rows separately? (yes/no): ").strip().lower()
@@ -100,9 +123,9 @@ def process_excel():
 
                 print(f"Unique rows split into {num_splits} files inside: {split_dir}")
             else:
-                print("Invalid number of rows. Skipping splitting.")
+                print("Error: Invalid number of rows. Skipping splitting.")
         except ValueError:
-            print("Invalid input for row count. Skipping splitting.")
+            print("Error: Invalid input for row count. Skipping splitting.")
 
 if __name__ == "__main__":
     process_excel()
